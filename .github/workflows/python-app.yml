@@ -1,18 +1,16 @@
-name: Python application
+name: Dev Branch Checks
 
 on:
   push:
-    branches: ["main"]
+    branches: ["dev"]
   pull_request:
-    branches: ["main"]
-  schedule:
-    - cron: "0 0 * * 0" # Wekelijkse scan op zondag
+    branches: ["dev"]
 
 permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  security-checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,37 +30,34 @@ jobs:
         run: |
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          # exit-zero treats all errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-      - name: Test with pytest
-        run: |
-          pytest
 
       - name: Run SAST scan with Bandit
         run: |
-          bandit -r . -f json -o bandit-results.json || true
+          bandit -r . -f json -o bandit-results.json
           if grep -q '"SEVERITY": "HIGH"' bandit-results.json; then
-            echo "::error::High severity security issues found in code"
+            echo "High severity security issues found"
+            cat bandit-results.json
             exit 1
           fi
 
       - name: Check dependencies with Safety
         run: |
-          safety check || true
-          if [ $? -ne 0 ]; then
-            echo "::error::Vulnerable dependencies found"
-            exit 1
-          fi
+          safety check
 
       - name: Scan for secrets
         run: |
           detect-secrets scan > secrets-results.json
           if [ -s secrets-results.json ] && [ "$(cat secrets-results.json)" != "{}" ]; then
-            echo "::error::Potential secrets found in code"
+            echo "Potential secrets found in code"
             cat secrets-results.json
             exit 1
           fi
+
+      - name: Test with pytest
+        run: |
+          pytest
 
       - name: Upload security results
         if: always()
@@ -72,15 +67,3 @@ jobs:
           path: |
             bandit-results.json
             secrets-results.json
-
-  security-gate:
-    needs: build-and-test
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Check build status
-        run: |
-          if [ "${{ needs.build-and-test.result }}" != "success" ]; then
-            echo "::error::Security checks failed - Pull request cannot be merged"
-            exit 1
-          fi
