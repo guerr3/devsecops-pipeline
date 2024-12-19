@@ -1,6 +1,6 @@
 # weather_api.py
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 import os
 import requests
 
@@ -28,10 +28,15 @@ def get_weather(city):
 
 @app.route('/admin', methods=['POST'])
 def admin_panel():
-    # Onveilige eval gebruik (dit zal SAST triggeren)
+    # Verwijder onveilige eval-gebruik en implementeer veilige commando's
     command = request.json.get('command')
-    result = eval(command)
+    if command not in ['status', 'restart', 'shutdown']:
+        abort(403, description="Unauthorized command")
+
+    # Simuleer veilige commando-uitvoering
+    result = f"Executed command: {command}"
     return jsonify({"result": result})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
