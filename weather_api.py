@@ -6,10 +6,10 @@ import requests
 
 app = Flask(__name__)
 
-# aangepast voor dependency check
-WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
+# Removed hardcoded API key and use environment variable instead
+WEATHER_API_KEY = os.getenv('WEATHER_API_KEY') 
 
-# Schakel debug-modus uit voor productie, want anders triggert deze SAST
+# Schakel debug-modus uit voor productie
 app.config['DEBUG'] = False
 
 @app.route('/weather/<city>', methods=['GET'])
