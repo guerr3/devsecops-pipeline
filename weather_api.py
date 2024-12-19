@@ -6,10 +6,10 @@ import requests
 
 app = Flask(__name__)
 
-# Opzettelijk "lek" van API key (dit zal de secret detection triggeren)
-WEATHER_API_KEY = "ab12cd34ef56gh78ij90kl12mn34op56"
+# aangepast voor dependency check
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
-# Schakel debug-modus uit voor productie
+# Schakel debug-modus uit voor productie, want anders triggert deze SAST
 app.config['DEBUG'] = False
 
 @app.route('/weather/<city>', methods=['GET'])
